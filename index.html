@@ -1,1 +1,1027 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Pero Coin Mining</title>
 
+  <!-- Telegram, Adsgram & Firebase SDKs -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+  <!-- Google Fonts & Bootstrap Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <style>
+    :root {
+      --bg-main: #100d1f;
+      --card-bg: rgba(37, 29, 63, 0.82);
+      --card-border: rgba(216, 180, 254, 0.18);
+      --accent-blue: #c084fc;
+      --accent-purple: #fb7185;
+      --accent-gold: #facc15;
+      --accent-green: #2dd4bf;
+      --text-muted: #b7b0cc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    
+    body { 
+      background: var(--bg-main); 
+      color: #fff; 
+      padding-bottom: 90px; 
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* App Header */
+    .top-bar { 
+      background: rgba(25, 17, 45, 0.94); 
+      backdrop-filter: blur(12px);
+      padding: 14px 18px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      border-bottom: 1px solid var(--card-border); 
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .user-badge { display: flex; align-items: center; gap: 12px; }
+    
+    .user-avatar { 
+      width: 40px; 
+      height: 40px; 
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); 
+      border-radius: 50%; 
+      color: #fff; 
+      font-weight: 800; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      overflow: hidden;
+      border: 1.5px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .score-pill {
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      padding: 6px 14px;
+      border-radius: 20px;
+      color: var(--accent-gold);
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Tab Sections */
+    .section { display: none; padding: 20px 16px; }
+    .section.active { display: block; }
+
+    .section-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 16px; }
+    
+    .game-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .game-card { 
+      background: var(--card-bg); 
+      border: 1px solid var(--card-border); 
+      border-radius: 20px; 
+      padding: 18px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.14); 
+      display: flex; 
+      flex-direction: column;
+      justify-content: space-between; 
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .game-info h3 { font-size: 1rem; color: #fff; font-weight: 700; }
+    .game-info p { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+    .play-btn { 
+      background: linear-gradient(135deg, #c084fc, #fb7185); 
+      color: #1b102a; 
+      border: none; 
+      padding: 10px 20px; 
+      font-weight: 700; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      width: 100%;
+    }
+
+    /* Fullscreen Game Modal */
+    .game-modal { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: #090d16; 
+      display: none; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: flex-start; 
+      z-index: 100; 
+      padding-top: 15px;
+    }
+
+    .close-game-btn { 
+      position: absolute; 
+      top: 15px; 
+      right: 15px; 
+      background: rgba(239, 68, 68, 0.2); 
+      color: #ef4444; 
+      border: 1px solid rgba(239, 68, 68, 0.4); 
+      padding: 6px 14px; 
+      border-radius: 20px; 
+      font-weight: 700; 
+      cursor: pointer; 
+      font-size: 0.8rem;
+    }
+
+    canvas { 
+      background: #0d1322; 
+      border: 2px solid #38bdf8; 
+      border-radius: 18px; 
+      touch-action: none; 
+      box-shadow: 0 0 20px rgba(192, 132, 252, 0.22);
+    }
+
+    .game-controls-container {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .ctrl-btn {
+      background: linear-gradient(135deg, #c084fc, #2dd4bf);
+      color: #1b102a;
+      border: none;
+      padding: 12px 30px;
+      font-size: 1rem;
+      font-weight: 800;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .ctrl-btn:active {
+      transform: scale(0.95);
+      background: #0284c7;
+      color: #fff;
+    }
+
+    /* Leaderboard Elements */
+    .leaderboard-item { 
+      background: var(--card-bg); 
+      border: 1px solid var(--card-border); 
+      border-radius: 16px; 
+      padding: 14px 18px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 10px; 
+    }
+
+    .rank-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+      margin-right: 12px;
+    }
+
+    .rank-1 { background: #fbbf24; color: #000; }
+    .rank-2 { background: #94a3b8; color: #000; }
+    .rank-3 { background: #b45309; color: #fff; }
+    .rank-other { background: rgba(255, 255, 255, 0.1); color: var(--text-muted); }
+
+    /* Profile Card UI */
+    .profile-card { 
+      background: var(--card-bg); 
+      border: 1px solid var(--card-border); 
+      border-radius: 24px; 
+      padding: 28px 20px 20px; 
+      text-align: center; 
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .profile-avatar-large {
+      width: 85px;
+      height: 85px;
+      font-size: 2.2rem;
+      margin: 0 auto 14px;
+      border: 3px solid var(--accent-blue);
+      box-shadow: 0 0 20px rgba(192, 132, 252, 0.22);
+    }
+
+    .stat-box { 
+      background: rgba(35, 26, 57, 0.86); 
+      padding: 18px; 
+      border-radius: 18px; 
+      margin-top: 20px; 
+      border: 1px solid var(--card-border); 
+    }
+
+    .policy-box { 
+      background: rgba(56, 189, 248, 0.04); 
+      border: 1px dashed rgba(56, 189, 248, 0.3); 
+      padding: 14px; 
+      border-radius: 14px; 
+      font-size: 0.8rem; 
+      color: #cbd5e1; 
+      margin-top: 20px; 
+      text-align: left; 
+    }
+
+    /* Navigation Bar */
+    .bottom-nav {
+      position: fixed; bottom: max(12px, env(safe-area-inset-bottom)); left: 14px; right: 14px;
+      min-height: 72px; padding: 8px; box-sizing: border-box;
+      background: rgba(20, 16, 37, .96); backdrop-filter: blur(18px);
+      border: 1px solid rgba(196, 181, 253, .22); border-radius: 24px;
+      display: flex; justify-content: space-around; align-items: center;
+      box-shadow: 0 12px 35px rgba(0,0,0,.35); z-index: 50;
+    }
+    .nav-btn {
+      position: relative; flex: 1; min-width: 0; min-height: 54px; padding: 7px 4px;
+      background: transparent; border: 1px solid transparent; border-radius: 17px;
+      color: var(--text-muted); display: flex; flex-direction: column; align-items: center;
+      justify-content: center; font-size: .68rem; letter-spacing: .2px; font-weight: 750;
+      cursor: pointer; gap: 3px; transition: background .2s ease, color .2s ease, transform .2s ease;
+    }
+    .nav-btn i { font-size: 1.25rem; }
+    .nav-btn.active { color: #fff; background: linear-gradient(135deg, #7c3aed, #2563eb); border-color: rgba(255,255,255,.15); box-shadow: 0 5px 16px rgba(124,58,237,.28); }
+    .nav-btn:active { transform: scale(.96); }
+    .play-btn { border-radius: 14px !important; letter-spacing: .65px; text-transform: uppercase; font-weight: 850 !important; box-shadow: 0 6px 18px rgba(124,58,237,.18); }
+    .btn-ad-green, .btn-ad-gold, .btn-skip { border-radius: 15px !important; font-weight: 800 !important; letter-spacing: .15px; }
+    button:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 3px; }
+    body { padding-bottom: 105px; }
+
+    .btn-action { 
+      background: var(--accent-blue); 
+      color: #000; 
+      border: none; 
+      padding: 12px; 
+      border-radius: 12px; 
+      font-weight: 700; 
+      width: 100%; 
+      margin-top: 10px; 
+      cursor: pointer; 
+    }
+
+    .btn-ad-gold { 
+      background: var(--accent-gold); 
+      color: #000; 
+      border: none; 
+      padding: 12px; 
+      border-radius: 12px; 
+      font-weight: 800; 
+      width: 100%; 
+      margin-top: 10px; 
+      cursor: pointer; 
+    }
+
+    .btn-ad-green { 
+      background: var(--accent-green); 
+      color: #000; 
+      border: none; 
+      padding: 12px; 
+      border-radius: 12px; 
+      font-weight: 800; 
+      width: 100%; 
+      margin-top: 10px; 
+      cursor: pointer; 
+    }
+
+    .btn-skip {
+      background: #475569;
+      color: #fff;
+      border: 1px solid #64748b;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      width: 100%;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="user-badge">
+      <div class="user-avatar" id="uAvatar">G</div>
+      <span style="display:flex;flex-direction:column;line-height:1.15"><strong style="font-weight:800;font-size:.95rem;letter-spacing:.2px">Pero Coin Mining</strong><small id="uName" style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Player</small></span>
+    </div>
+    <div class="score-pill">
+      <i class="bi bi-coin"></i>
+      <span id="topHighScore">0</span> Coins
+    </div>
+  </div>
+
+  <!-- TAB 1: GAMES -->
+  <div class="section active" id="sec-games">
+    <div style="padding:20px;border-radius:22px;margin-bottom:18px;background:linear-gradient(135deg,#42206f,#174e58);border:1px solid rgba(216,180,254,.24);box-shadow:0 12px 32px rgba(0,0,0,.2)">
+      <p style="font-size:.75rem;color:#e9d5ff;font-weight:700;letter-spacing:1.5px">PLAY • THINK • COLLECT</p>
+      <h2 style="font-size:1.55rem;font-weight:800;margin-top:7px">Pero Coin Mining</h2>
+      <p style="font-size:.82rem;color:#e4d9f6;margin-top:6px;line-height:1.5">Play fun mini-games, improve your score, and collect coins.</p>
+    </div>
+    <h2 class="section-title">🕹️ Mini Games</h2>
+    <div class="game-grid">
+      <div class="game-card" style="background:linear-gradient(155deg,rgba(88,28,135,.75),var(--card-bg))">
+        <div style="font-size:2.3rem;background:rgba(216,180,254,.12);border-radius:18px;padding:12px 22px">🧠</div>
+        <div class="game-info"><h3>Memory Match</h3><p>Find matching pairs of cards</p></div>
+        <button class="play-btn" onclick="startMemoryGame()">PLAY NOW</button>
+      </div>
+      <div class="game-card" style="background:linear-gradient(155deg,rgba(13,148,136,.45),var(--card-bg))">
+        <div style="font-size:2.3rem;background:rgba(45,212,191,.12);border-radius:18px;padding:12px 22px">🔢</div>
+        <div class="game-info"><h3>Number Sprint</h3><p>Choose the correct number before time runs out</p></div>
+        <button class="play-btn" onclick="startNumberGame()">PLAY NOW</button>
+      </div>
+      <div class="game-card" style="background:linear-gradient(155deg,rgba(190,24,93,.42),var(--card-bg))">
+        <div style="font-size:2.3rem;background:rgba(251,113,133,.12);border-radius:18px;padding:12px 22px">🎨</div>
+        <div class="game-info"><h3>Color Recall</h3><p>Remember the color sequence and repeat it</p></div>
+        <button class="play-btn" onclick="startColorGame()">PLAY NOW</button>
+      </div>
+      <div class="game-card" style="background:linear-gradient(155deg,rgba(161,98,7,.42),var(--card-bg))">
+        <div style="font-size:2.3rem;background:rgba(250,204,21,.12);border-radius:18px;padding:12px 22px">➕</div>
+        <div class="game-info"><h3>Quick Math</h3><p>Solve quick math challenges</p></div>
+        <button class="play-btn" onclick="startMathGame()">PLAY NOW</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: LEADERBOARD -->
+  <div class="section" id="sec-leaderboard">
+    <h2 class="section-title">🏆 Pero Leaderboard</h2>
+    <div id="leaderboardList">
+      <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: 40px;">Syncing leaderboard data...</p>
+    </div>
+  </div>
+
+  <!-- TAB 3: PROFILE -->
+  <div class="section" id="sec-profile">
+    <div class="profile-card">
+      <div class="user-avatar profile-avatar-large" id="profAvatar">G</div>
+      <h2 id="profName" style="font-weight: 800; font-size: 1.35rem; color: #fff;">Player</h2>
+      <p id="profUsername" style="color: var(--accent-blue); font-size: 0.85rem; font-weight: 600; margin-top: 2px;">@username</p>
+      <p id="profId" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">ID: --</p>
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px;text-align:center;">
+        <div class="stat-box" style="margin-top:0;border-radius:16px;">
+          <small style="color:var(--text-muted);font-size:.75rem;">Total Coins</small>
+          <h2 id="profTotalPoints" style="color:var(--accent-blue);font-weight:800;font-size:1.7rem;margin-top:6px;">0</h2>
+        </div>
+        <div class="stat-box" style="margin-top:0;border-radius:16px;">
+          <small style="color:var(--text-muted);font-size:.75rem;">Best Score</small>
+          <h2 id="profHighScore" style="color:var(--accent-gold);font-weight:800;font-size:1.7rem;margin-top:6px;">0</h2>
+        </div>
+        <div class="stat-box" style="margin-top:0;border-radius:16px;">
+          <small style="color:var(--text-muted);font-size:.75rem;">Games Played</small>
+          <h2 id="profCompletedGames" style="color:#c4b5fd;font-weight:800;font-size:1.7rem;margin-top:6px;">0</h2>
+        </div>
+        <div class="stat-box" style="margin-top:0;border-radius:16px;">
+          <small style="color:var(--text-muted);font-size:.75rem;">Global Rank</small>
+          <h2 id="profRank" style="color:#34d399;font-weight:800;font-size:1.7rem;margin-top:6px;">--</h2>
+          <small id="profRankNote" style="display:block;color:var(--text-muted);font-size:.65rem;margin-top:3px;">সব ইউজারের Total Coins অনুযায়ী</small>
+        </div>
+      </div>
+
+      <div class="policy-box">
+        <strong style="color: var(--accent-blue);">📌 FAIR PLAY POLICY:</strong>
+        <p style="margin-top: 6px;">1. Ads are never required to play the games.</p>
+        <p style="margin-top: 4px;">2. Bonus coins and revives are optional. You can save your score and continue without watching an ad.</p>
+      </div>
+
+      <a href="https://t.me/FTgaming7" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:20px; color: #fff; background: linear-gradient(135deg, #2AABEE, #229ED9); padding: 12px; border-radius: 14px; text-decoration:none; font-size:0.88rem; font-weight: 700;">
+        <i class="bi bi-telegram"></i> Official Community
+      </a>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAVIGATION -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('games', this)">
+      <i class="bi bi-controller"></i>
+      <span>Games</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('leaderboard', this)">
+      <i class="bi bi-trophy-fill"></i>
+      <span>Leaderboard</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('profile', this)">
+      <i class="bi bi-person-fill"></i>
+      <span>Profile</span>
+    </button>
+  </div>
+
+  <!-- GAME ARENA MODAL -->
+  <div class="game-modal" id="gameModal">
+    <button class="close-game-btn" onclick="closeGame()">Close Game</button>
+    <div id="gameContainer" style="text-align: center; width: 100%; display:flex; flex-direction:column; align-items:center;"></div>
+  </div>
+
+  <script>
+    /* =================================================================
+       1. FIREBASE CONFIGURATION (gamehub-live-ec64c)
+       ================================================================= */
+    const firebaseConfig = {
+  apiKey: "AIzaSyDcZnoKA4ajT1jwY9UKjfcX2tSFy4QiERg",
+  authDomain: "pero-studio-77b83.firebaseapp.com",
+  databaseURL: "https://pero-studio-77b83-default-rtdb.firebaseio.com/",
+  projectId: "pero-studio-77b83",
+  storageBucket: "pero-studio-77b83.firebasestorage.app",
+  messagingSenderId: "1039057073771",
+  appId: "1:1039057073771:web:c0367c24e8c912298a632e",
+  measurementId: "G-7JXFFHFMT3"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function triggerHaptic(style = 'light') {
+      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+        if (style === 'heavy' || style === 'medium' || style === 'light') {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred(style);
+        } else if (style === 'error') {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+        }
+      }
+    }
+
+    /* =================================================================
+       2. ADSGRAM & TELEGRAM SDK SETUP
+       ================================================================= */
+    const ADSGRAM_BLOCK_ID = "56744"; // Replace with your actual AdsGram rewarded block ID
+    let AdController = null;
+    let rewardAdInProgress = false;
+
+    function initAdsgram() {
+      if (!window.Adsgram) {
+        console.warn("AdsGram SDK did not load");
+        return false;
+      }
+      try {
+        AdController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
+        return !!AdController;
+      } catch (error) {
+        console.error("AdsGram initialization error:", error);
+        AdController = null;
+        return false;
+      }
+    }
+
+    initAdsgram();
+
+    // Telegram User Details
+    let tgUser = { 
+      id: "guest_" + Math.floor(Math.random() * 10000), 
+      first_name: "Player",
+      last_name: "",
+      username: "",
+      photo_url: ""
+    };
+
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+      if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+        tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+      }
+    }
+
+    const fullName = (tgUser.first_name + " " + (tgUser.last_name || "")).trim();
+    document.getElementById("uName").innerText = tgUser.first_name;
+    document.getElementById("profName").innerText = fullName;
+    document.getElementById("profUsername").innerText = tgUser.username ? "@" + tgUser.username : "No username";
+    document.getElementById("profId").innerText = "ID: " + tgUser.id;
+
+    function renderAvatar(elementId) {
+      const el = document.getElementById(elementId);
+      if (tgUser.photo_url) {
+        el.innerHTML = `<img src="${tgUser.photo_url}" alt="Profile" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+      } else {
+        el.innerText = tgUser.first_name.charAt(0).toUpperCase();
+      }
+    }
+    renderAvatar("uAvatar");
+    renderAvatar("profAvatar");
+
+    /* =================================================================
+       3. USER STATS & FIREBASE SYNC
+       ================================================================= */
+    let userData = { highScore: 0, totalPoints: 0, completedGames: 0 };
+    const userRef = db.ref('users/' + tgUser.id);
+
+    function normalizeUserStats(raw = {}) {
+      return {
+        ...raw,
+        highScore: Number(raw.highScore ?? raw.high_score ?? 0) || 0,
+        totalPoints: Number(raw.totalPoints ?? raw.points ?? 0) || 0,
+        completedGames: Number(raw.completedGames ?? raw.gamesPlayed ?? 0) || 0
+      };
+    }
+
+    userRef.on('value', (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        userData = normalizeUserStats(val);
+        userRef.update({
+          name: fullName,
+          username: tgUser.username || "",
+          photo_url: tgUser.photo_url || "",
+          highScore: userData.highScore,
+          totalPoints: userData.totalPoints,
+          completedGames: userData.completedGames
+        }).catch(err => console.warn('User profile update error:', err));
+      } else {
+        userData = { highScore: 0, totalPoints: 0, completedGames: 0 };
+        userRef.set({
+          name: fullName,
+          username: tgUser.username || "",
+          photo_url: tgUser.photo_url || "",
+          highScore: 0,
+          totalPoints: 0,
+          completedGames: 0
+        }).catch(err => console.error('User initialization failed:', err));
+      }
+      document.getElementById("topHighScore").innerText = userData.totalPoints || 0;
+      document.getElementById("profTotalPoints").innerText = userData.totalPoints || 0;
+      document.getElementById("profHighScore").innerText = userData.highScore || 0;
+      document.getElementById("profCompletedGames").innerText = userData.completedGames || 0;
+    });
+
+    function switchTab(tabName, btn) {
+      triggerHaptic('light');
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('sec-' + tabName).classList.add('active');
+      btn.classList.add('active');
+      if (tabName === 'leaderboard' || tabName === 'profile') loadLeaderboard();
+    }
+
+    /* =================================================================
+       4. LEADERBOARD SYSTEM
+       ================================================================= */
+    let leaderboardRequest = 0;
+    function loadLeaderboard() {
+      const listEl = document.getElementById("leaderboardList");
+      const requestId = ++leaderboardRequest;
+      listEl.innerHTML = '<p style="text-align:center;color:var(--text-muted);margin-top:40px;">🏆 লিডারবোর্ড লোড হচ্ছে...</p>';
+
+      db.ref('users').once('value')
+        .then((snapshot) => {
+          if (requestId !== leaderboardRequest) return;
+          const usersArr = [];
+          snapshot.forEach(child => {
+            const u = child.val() || {};
+            usersArr.push({ 
+              id: String(child.key), 
+              ...u, 
+              totalPoints: Number(u.totalPoints || 0), 
+              highScore: Number(u.highScore || 0), 
+              completedGames: Number(u.completedGames || 0) 
+            });
+          });
+
+          usersArr.sort((a, b) => b.totalPoints - a.totalPoints || b.highScore - a.highScore);
+          
+          const myRankIndex = usersArr.findIndex(u => u.id === String(tgUser.id));
+          document.getElementById('profRank').innerText = myRankIndex >= 0 ? '#' + (myRankIndex + 1) : '--';
+          document.getElementById('profRankNote').innerText = myRankIndex >= 0 ? 'মোট ' + usersArr.length + ' জনের মধ্যে' : 'স্কোর সেভ হলে র‍্যাঙ্ক দেখাবে';
+
+          if (!usersArr.length) {
+            listEl.innerHTML = '<p style="text-align:center;color:var(--text-muted);">এখনো কোনো স্কোর নেই।</p>';
+            return;
+          }
+
+          listEl.innerHTML = '<p style="color:var(--text-muted);font-size:.8rem;margin:0 0 12px;">মোট ' + usersArr.length + ' জন প্লেয়ারের তালিকা</p>' + usersArr.map((u, index) => {
+            const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'rank-other';
+            const avatarContent = u.photo_url
+              ? `<img src="${escapeHtml(u.photo_url)}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+              : escapeHtml((u.name || 'Player').charAt(0).toUpperCase());
+            const isMe = u.id === String(tgUser.id);
+            return `<div class="leaderboard-item" style="${isMe ? 'border:1px solid var(--accent-blue);background:rgba(56,189,248,.10);' : ''}">
+              <div style="display:flex;align-items:center;min-width:0;flex:1;">
+                <div class="rank-badge ${rankClass}">${index + 1}</div>
+                <div style="width:30px;height:30px;flex:0 0 30px;border-radius:50%;background:var(--accent-purple);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;overflow:hidden;margin-right:10px;">${avatarContent}</div>
+                <div style="min-width:0;">
+                  <strong style="font-size:0.9rem;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(u.name || 'Player')}${isMe ? ' (আপনি)' : ''}</strong>
+                  <small style="color:var(--text-muted);font-size:.7rem;">Best Score: ${u.highScore} • খেলা: ${u.completedGames}</small>
+                </div>
+              </div>
+              <div style="color:var(--accent-blue);font-weight:800;font-size:0.95rem;white-space:nowrap;margin-left:10px;">${u.totalPoints} Pts</div>
+            </div>`;
+          }).join('');
+        })
+        .catch((error) => {
+          console.error('Leaderboard load failed:', error);
+          if (requestId === leaderboardRequest) {
+            listEl.innerHTML = '<p style="text-align:center;color:#fca5a5;">লিডারবোর্ড লোড করা যায়নি। Firebase Rules যাচাই করুন।</p>';
+          }
+        });
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+
+    function saveGameResult(finalScore, sessionId, highScoreCandidate = finalScore) {
+      const safeScore = Math.max(0, Math.floor(Number(finalScore) || 0));
+      const safeHighScore = Math.max(0, Math.floor(Number(highScoreCandidate) || 0));
+      const runKey = String(sessionId || ('run_' + Date.now())).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      return userRef.transaction((current) => {
+        if (!current) current = { name: fullName, username: tgUser.username || '', photo_url: tgUser.photo_url || '', highScore: 0, totalPoints: 0, completedGames: 0 };
+        const normalized = normalizeUserStats(current);
+        current.highScore = Math.max(normalized.highScore, safeHighScore);
+        current.totalPoints = normalized.totalPoints + safeScore;
+        current.completedGames = normalized.completedGames + 1;
+        current.processedRuns = current.processedRuns || {};
+        if (current.processedRuns[runKey]) return;
+        current.processedRuns[runKey] = true;
+        
+        current.name = fullName;
+        current.username = tgUser.username || '';
+        current.photo_url = tgUser.photo_url || '';
+        return current;
+      }).then(result => {
+        if (result.committed) {
+          userData = normalizeUserStats(result.snapshot.val() || userData);
+          document.getElementById('topHighScore').innerText = Number(userData.totalPoints || 0);
+          document.getElementById('profTotalPoints').innerText = Number(userData.totalPoints || 0);
+          document.getElementById('profHighScore').innerText = Number(userData.highScore || 0);
+          document.getElementById('profCompletedGames').innerText = Number(userData.completedGames || 0);
+          loadLeaderboard();
+        }
+        return result.committed;
+      }).catch(error => {
+        console.error('Score save error:', error);
+        return false;
+      });
+    }
+
+    let activeGameCleanup = null;
+    function openGameModal() { 
+      triggerHaptic('medium');
+      document.getElementById("gameModal").style.display = "flex"; 
+    }
+    
+    function closeGame() {
+      triggerHaptic('light');
+      if (typeof activeGameCleanup === 'function') {
+        try { activeGameCleanup(); } catch (e) { console.warn('Game cleanup failed:', e); }
+      }
+      activeGameCleanup = null;
+      document.getElementById("gameModal").style.display = "none";
+      document.getElementById("gameContainer").innerHTML = "";
+    }
+
+    /* =================================================================
+       PERO MINI GAMES — independent playable games
+       ================================================================= */
+    function newPeroSession(prefix) {
+      return prefix + '_' + tgUser.id + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    }
+
+    function finishPeroGame(score, sessionId) {
+      showGameOverScreen(score, false, 0, null, sessionId, finalScore => saveGameResult(finalScore, sessionId));
+    }
+
+    function startMemoryGame() {
+      openGameModal();
+      const sessionId = newPeroSession('memory');
+      const icons = ['🍉','🍋','🍇','🍒','🥝','🍍','🍉','🍋','🍇','🍒','🥝','🍍'].sort(() => Math.random() - .5);
+      let opened = [], matched = new Set(), moves = 0, locked = false, ended = false, seconds = 45;
+      const c = document.getElementById('gameContainer');
+      c.innerHTML = `<h2 style="margin-top:28px;color:#e9d5ff">🧠 Memory Match</h2><p style="margin:8px 0;color:var(--text-muted)">সময়: <b id="memTime">45</b>s · চাল: <b id="memMoves">0</b></p><div id="memGrid" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;width:min(340px,92vw);margin:12px auto"></div><p style="color:var(--text-muted);font-size:.82rem">একই ছবি থাকা দুইটি কার্ড মিলিয়ে নিন।</p>`;
+      const grid = document.getElementById('memGrid');
+      icons.forEach((icon, i) => {
+        const b = document.createElement('button'); b.type='button'; b.dataset.i=i; b.textContent='?';
+        b.style.cssText='height:66px;border:1px solid #a78bfa;border-radius:14px;background:#30234b;color:#fff;font-size:1.65rem;font-weight:800;touch-action:manipulation';
+        b.addEventListener('click', () => {
+          if (ended || locked || matched.has(i) || opened.some(x=>x.i===i)) return;
+          b.textContent=icons[i]; b.style.background='#4c1d95'; opened.push({i,b});
+          if (opened.length===2) {
+            moves++; document.getElementById('memMoves').textContent=moves;
+            if (icons[opened[0].i]===icons[opened[1].i]) { opened.forEach(x=>{matched.add(x.i);x.b.style.background='#115e59';}); opened=[]; if(matched.size===icons.length) end(); }
+            else { locked=true; const pair=opened.slice(); setTimeout(()=>{if(!ended){pair.forEach(x=>{x.b.textContent='?';x.b.style.background='#30234b';});opened=[];locked=false;}},650); }
+          }
+        }); grid.appendChild(b);
+      });
+      function end(){ if(ended)return; ended=true; clearInterval(timer); const score=Math.max(0,Math.round(matched.size*5 - Math.max(0,moves-6))); c.innerHTML=`<div style="margin-top:70px"><h2>দারুণ খেলেছেন! 🎉</h2><p style="margin:12px;color:var(--text-muted)">মিলেছে ${matched.size/2} জোড়া · চাল ${moves}</p></div>`; finishPeroGame(score,sessionId); }
+      const timer=setInterval(()=>{if(ended)return;seconds--;const t=document.getElementById('memTime');if(t)t.textContent=seconds;if(seconds<=0){ended=true;clearInterval(timer);finishPeroGame(Math.max(0,Math.round(matched.size*2)),sessionId);}},1000);
+      activeGameCleanup=()=>{ended=true;clearInterval(timer);};
+    }
+
+    function startNumberGame() {
+      openGameModal(); const sessionId=newPeroSession('number'); let score=0, time=25, ended=false;
+      const c=document.getElementById('gameContainer');
+      c.innerHTML=`<h2 style="margin-top:32px;color:#5eead4">🔢 Number Sprint</h2><p style="margin:8px;color:var(--text-muted)">সময়: <b id="numTime">25</b>s</p><h3 style="margin:18px 0">এই সংখ্যাটি বাছুন: <span id="targetNum" style="color:#facc15;font-size:1.8rem"></span></h3><div id="numChoices" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:min(320px,90vw)"></div><p style="margin-top:16px">Score: <b id="numScore">0</b></p>`;
+      function question(){if(ended)return;const target=Math.floor(Math.random()*30)+1;document.getElementById('targetNum').textContent=target;const nums=new Set([target]);while(nums.size<4)nums.add(Math.floor(Math.random()*30)+1);const arr=[...nums].sort(()=>Math.random()-.5);const box=document.getElementById('numChoices');box.innerHTML='';arr.forEach(n=>{const b=document.createElement('button');b.textContent=n;b.style.cssText='padding:20px;border:1px solid #5eead4;border-radius:15px;background:#183c43;color:#fff;font-size:1.3rem;font-weight:800';b.onclick=()=>{if(ended)return;if(n===target)score+=5;else score=Math.max(0,score-2);document.getElementById('numScore').textContent=score;question();};box.appendChild(b);});}
+      question();const timer=setInterval(()=>{time--;const el=document.getElementById('numTime');if(el)el.textContent=time;if(time<=0){ended=true;clearInterval(timer);finishPeroGame(score,sessionId);}},1000);activeGameCleanup=()=>{ended=true;clearInterval(timer);};
+    }
+
+    function startColorGame() {
+      openGameModal();const sessionId=newPeroSession('color');let sequence=[],input=[],round=0,ended=false,showing=false;const colors=[['#fb7185','Coral'],['#2dd4bf','Mint'],['#a78bfa','Violet'],['#facc15','Gold']];const c=document.getElementById('gameContainer');
+      c.innerHTML=`<h2 style="margin-top:30px;color:#fda4af">🎨 Color Recall</h2><p id="colorMsg" style="margin:10px;color:var(--text-muted)">রঙের ক্রম দেখুন, তারপর একই ক্রমে চাপ দিন।</p><div id="colorBoard" style="display:grid;grid-template-columns:repeat(2, minmax(110px,135px));gap:12px;margin:16px auto"></div><p>রাউন্ড: <b id="colorRound">0</b></p>`;
+      const board=document.getElementById('colorBoard');colors.forEach((it,i)=>{const b=document.createElement('button');b.setAttribute('aria-label',it[1]);b.style.cssText=`height:105px;border:2px solid rgba(255,255,255,.2);border-radius:20px;background:${it[0]};opacity:.82`;b.onclick=()=>press(i);board.appendChild(b);});
+      function flash(i){const b=board.children[i];b.style.opacity='1';b.style.transform='scale(1.04)';setTimeout(()=>{b.style.opacity='.82';b.style.transform='scale(1)';},320);}
+      function nextRound(){if(ended)return;round++;document.getElementById('colorRound').textContent=round;sequence.push(Math.floor(Math.random()*4));input=[];showing=true;document.getElementById('colorMsg').textContent='ক্রমটি মনে রাখুন…';sequence.forEach((n,j)=>setTimeout(()=>{if(!ended)flash(n);if(j===sequence.length-1)setTimeout(()=>{showing=false;document.getElementById('colorMsg').textContent='এবার আপনার পালা!';},380);},j*620));}
+      function press(i){if(ended||showing)return;flash(i);input.push(i);const idx=input.length-1;if(input[idx]!==sequence[idx]){ended=true;finishPeroGame(Math.max(0,(round-1)*5),sessionId);return;}if(input.length===sequence.length)setTimeout(nextRound,450);}
+      nextRound();activeGameCleanup=()=>{ended=true;};
+    }
+
+    function startMathGame() {
+      openGameModal();const sessionId=newPeroSession('math');let score=0,time=30,ended=false;const c=document.getElementById('gameContainer');
+      c.innerHTML=`<h2 style="margin-top:30px;color:#fde047">➕ Quick Math</h2><p style="margin:8px;color:var(--text-muted)">সময়: <b id="mathTime">30</b>s</p><h1 id="mathQuestion" style="font-size:2.3rem;margin:24px 0;color:#fff"></h1><div id="mathChoices" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:min(320px,90vw)"></div><p style="margin-top:16px">Score: <b id="mathScore">0</b></p>`;
+      let answer=0;function question(){if(ended)return;const a=Math.floor(Math.random()*20)+1,b=Math.floor(Math.random()*20)+1,op=Math.random()<.5?'+':'−';answer=op==='+'?a+b:a-b;document.getElementById('mathQuestion').textContent=`${a} ${op} ${b} = ?`;const vals=new Set([answer]);while(vals.size<4)vals.add(answer+Math.floor(Math.random()*13)-6);const arr=[...vals].sort(()=>Math.random()-.5);const box=document.getElementById('mathChoices');box.innerHTML='';arr.forEach(v=>{const btn=document.createElement('button');btn.textContent=v;btn.style.cssText='padding:18px;border:1px solid #facc15;border-radius:15px;background:#493816;color:#fff;font-size:1.25rem;font-weight:800';btn.onclick=()=>{if(ended)return;if(v===answer)score+=5;else score=Math.max(0,score-1);document.getElementById('mathScore').textContent=score;question();};box.appendChild(btn);});}
+      question();const timer=setInterval(()=>{time--;const el=document.getElementById('mathTime');if(el)el.textContent=time;if(time<=0){ended=true;clearInterval(timer);finishPeroGame(score,sessionId);}},1000);activeGameCleanup=()=>{ended=true;clearInterval(timer);};
+    }
+
+    /* =================================================================
+       GAME 1: COSMIC COIN CATCHER
+       ================================================================= */
+    function startCoinGame() {
+      openGameModal();
+      let reviveCount = 0;
+      const maxRevives = 3;
+      const sessionId = 'coin_' + tgUser.id + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      let stopped = false;
+      let ended = false;
+      let animId = null;
+      let moveLeft = false;
+      let moveRight = false;
+      let gScore = 0;
+      let lives = 3;
+      let playerX = 125;
+      let coin = { x: 160, y: 0, speed: 3.5 };
+      let safeUntil = 0;
+
+      function setupGameUI(currentScore, currentLives, revived = false) {
+        const container = document.getElementById("gameContainer");
+        container.innerHTML = `
+          <h3 style="color:#38bdf8;font-size:1.15rem;font-weight:700;margin-top:10px;margin-bottom:12px;">Cosmic Coin Catcher</h3>
+          <div style="width:min(320px,94vw);display:flex;justify-content:space-between;padding:8px 12px;background:rgba(15,23,42,.8);border-radius:10px 10px 0 0;border:1px solid var(--card-border);border-bottom:none;font-size:.95rem;font-weight:700;">
+            <span style="color:#38bdf8;">Score: <span id="coinScore">${currentScore}</span></span>
+            <span style="color:#ef4444;">Lives: <span id="coinLives">${currentLives}</span></span>
+          </div>
+          <canvas id="cCanvas" width="320" height="400" style="max-width:94vw;height:auto;"></canvas>
+          <p id="reviveHint" style="color:#86efac;font-size:.8rem;margin-top:8px;min-height:18px;">${revived ? '🛡️ Safety shield is active!' : ''}</p>
+          <div class="game-controls-container">
+            <button class="ctrl-btn" id="btnLeft">◀ LEFT</button>
+            <button class="ctrl-btn" id="btnRight">RIGHT ▶</button>
+          </div>`;
+      }
+
+      function attachControls() {
+        const leftBtn = document.getElementById("btnLeft");
+        const rightBtn = document.getElementById("btnRight");
+        const startL = e => { e.preventDefault(); if (!stopped) moveLeft = true; };
+        const endL = e => { e.preventDefault(); moveLeft = false; };
+        const startR = e => { e.preventDefault(); if (!stopped) moveRight = true; };
+        const endR = e => { e.preventDefault(); moveRight = false; };
+        
+        leftBtn.addEventListener('pointerdown', startL);
+        ['pointerup','pointercancel','pointerleave'].forEach(evt => leftBtn.addEventListener(evt, endL));
+        rightBtn.addEventListener('pointerdown', startR);
+        ['pointerup','pointercancel','pointerleave'].forEach(evt => rightBtn.addEventListener(evt, endR));
+        
+        const canvas = document.getElementById('cCanvas');
+        canvas.addEventListener('pointermove', e => {
+          if (e.pointerType !== 'mouse' && e.buttons === 0) return;
+          const rect = canvas.getBoundingClientRect();
+          playerX = Math.max(0, Math.min(250, (e.clientX - rect.left) * (320 / rect.width) - 35));
+        });
+      }
+
+      function finishSession(score = gScore, highScoreCandidate = score) {
+        if (ended) return;
+        ended = true;
+        return saveGameResult(score, sessionId, highScoreCandidate);
+      }
+
+      function loop() {
+        if (stopped) return;
+        const canvas = document.getElementById('cCanvas');
+        if (!canvas || !canvas.isConnected) return;
+        const ctx = canvas.getContext('2d');
+        const now = Date.now();
+        ctx.clearRect(0, 0, 320, 400);
+
+        if (moveLeft) playerX = Math.max(0, playerX - 6);
+        if (moveRight) playerX = Math.min(250, playerX + 6);
+
+        ctx.shadowBlur = 12; ctx.shadowColor = '#38bdf8'; ctx.fillStyle = '#38bdf8';
+        ctx.beginPath(); ctx.roundRect(playerX, 360, 70, 16, 8); ctx.fill();
+        ctx.shadowBlur = 15; ctx.shadowColor = '#fbbf24'; ctx.fillStyle = '#fbbf24';
+        ctx.beginPath(); ctx.arc(coin.x, coin.y, 11, 0, Math.PI * 2); ctx.fill();
+
+        if (now >= safeUntil) coin.y += coin.speed;
+
+        // Catch coin
+        if (now >= safeUntil && coin.y > 348 && coin.y < 375 && coin.x >= playerX - 5 && coin.x <= playerX + 75) {
+          gScore += 10; 
+          coin.speed = Math.min(8, coin.speed + 0.15);
+          document.getElementById('coinScore').innerText = gScore;
+          triggerHaptic('light'); 
+          coin.y = -15; 
+          coin.x = Math.random() * 280 + 20;
+        }
+
+        // Miss coin
+        if (now >= safeUntil && coin.y > 400) {
+          lives--;
+          document.getElementById('coinLives').innerText = lives;
+          triggerHaptic('error');
+          if (lives <= 0) {
+            stopped = true;
+            if (animId !== null) cancelAnimationFrame(animId);
+            const canRevive = reviveCount < maxRevives;
+            showGameOverScreen(gScore, canRevive, maxRevives - reviveCount, () => {
+              reviveCount++;
+              stopped = false;
+              lives = 1;
+              moveLeft = false; moveRight = false;
+              playerX = 125;
+              coin.y = -25; coin.x = Math.random() * 280 + 20;
+              coin.speed = Math.max(3.5, Math.min(5, coin.speed));
+              safeUntil = Date.now() + 2500;
+              setupGameUI(gScore, lives, true);
+              attachControls();
+              animId = requestAnimationFrame(loop);
+            }, sessionId, finishSession);
+            return;
+          }
+          coin.y = -15; coin.x = Math.random() * 280 + 20;
+        }
+        animId = requestAnimationFrame(loop);
+      }
+
+      activeGameCleanup = () => { stopped = true; if (animId !== null) cancelAnimationFrame(animId); };
+      setupGameUI(gScore, lives);
+      attachControls();
+      animId = requestAnimationFrame(loop);
+    }
+
+    /* =================================================================
+       GAME 2: SPEED TAPPER
+       ================================================================= */
+    function startTapGame() {
+      openGameModal();
+      const container = document.getElementById("gameContainer");
+      let tapScore = 0;
+      let timeLeft = 10;
+      let ended = false;
+      const sessionId = 'tap_' + tgUser.id + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+      container.innerHTML = `
+        <h3 style="color:#38bdf8;font-weight:800;font-size:1.2rem;margin-top:20px;">Speed Tapper</h3>
+        <p style="margin-top:6px;font-size:.9rem;color:var(--text-muted);">অবশিষ্ট সময়: <span id="timer" style="color:#ef4444;font-weight:800;">10</span>s</p>
+        <h1 style="font-size:4rem;margin:20px 0;font-weight:800;color:#38bdf8;" id="tapDisplay">0</h1>
+        <button class="btn-action" style="padding:24px;font-size:1.2rem;width:260px;border-radius:20px;touch-action:manipulation;" id="tapBtn">দ্রুত ট্যাপ করুন!</button>`;
+
+      const tapBtn = document.getElementById('tapBtn');
+      const timerInterval = setInterval(() => {
+        if (ended) return;
+        timeLeft--;
+        const timer = document.getElementById('timer');
+        if (timer) timer.innerText = timeLeft;
+        if (timeLeft <= 0) {
+          ended = true;
+          clearInterval(timerInterval);
+          tapBtn.disabled = true;
+          triggerHaptic('error');
+          showGameOverScreen(tapScore, false, 0, null, sessionId, score => saveGameResult(score, sessionId, tapScore));
+        }
+      }, 1000);
+
+      const tapHandler = e => {
+        e.preventDefault();
+        if (ended || timeLeft <= 0) return;
+        tapScore++;
+        triggerHaptic('light');
+        const display = document.getElementById('tapDisplay');
+        if (display) display.innerText = tapScore;
+      };
+
+      tapBtn.addEventListener('pointerdown', tapHandler);
+      activeGameCleanup = () => { ended = true; clearInterval(timerInterval); };
+    }
+
+    /* =================================================================
+       5. OPTIONAL ADSGRAM REWARD SYSTEM
+       Ads are shown only after the user presses an ad button.
+       Normal play and saving the score remain available without ads.
+       Reward is granted only when AdsGram confirms completion.
+       ================================================================= */
+    function showGameOverScreen(finalScore, canRevive = false, revivesLeft = 0, reviveCallback = null, sessionId = null, finishSession = null) {
+      const container = document.getElementById("gameContainer");
+      container.innerHTML = `
+        <div style="padding:24px;width:min(320px,92vw);margin-top:40px;background:var(--card-bg);border-radius:24px;border:1px solid var(--card-border);">
+          <h2 style="font-weight:800;font-size:1.5rem;">Game Over!</h2>
+          <p style="margin:12px 0;font-size:1.1rem;color:var(--text-muted);">Score: <strong style="color:#38bdf8;">${Math.max(0, Math.floor(Number(finalScore) || 0))}</strong></p>
+          <p style="font-size:.78rem;color:#94a3b8;line-height:1.5;">Watching an ad is optional. Your score can be saved without an ad.</p>
+          ${canRevive ? `<button class="btn-ad-green" id="adReviveBtn">🎬 Watch Ad to Revive<br><span style="font-size:.75rem;font-weight:600;">(${revivesLeft} remaining)</span></button>` : ''}
+          <button class="btn-ad-gold" id="adBonusBtn">🎁 Get +20 Bonus Coins (Optional)</button>
+          <button class="btn-skip" id="skipGameBtn">Continue Without Ad & Save Score</button>
+          <p id="adStatus" style="font-size:.8rem;color:#cbd5e1;margin-top:10px;min-height:18px;"></p>
+        </div>`;
+
+      let rewardClaimed = false;
+
+      async function showRewardedAd(onReward, buttonEl) {
+        if (rewardAdInProgress) return;
+        
+        if (!AdController) {
+          const initialized = initAdsgram();
+          if (!initialized || !AdController) {
+            const status = document.getElementById('adStatus');
+            if (status) status.textContent = 'Ad is not ready yet. Please try again shortly.';
+            return;
+          }
+        }
+
+        rewardAdInProgress = true;
+        if (buttonEl) { 
+          buttonEl.disabled = true; 
+          buttonEl.style.opacity = '0.65'; 
+        }
+        
+        const status = document.getElementById('adStatus');
+        if (status) status.textContent = 'Loading ad…';
+
+        try {
+          // Show an AdsGram rewarded video
+          const result = await AdController.show();
+          
+          if (result && result.done === true && !rewardClaimed) {
+            rewardClaimed = true;
+            if (status) status.textContent = 'Thanks! Your reward has been added.';
+            await onReward();
+          } else {
+            if (status) status.textContent = 'The ad was not completed, so no reward was granted.';
+          }
+        } catch (error) {
+          console.warn('AdsGram Status/Skip:', error);
+          if (status) {
+            // ইউজার স্কিপ করলে done: false থাকে
+            if (error && error.done === false) {
+              status.textContent = 'The ad was skipped. No reward was granted.';
+            } else {
+              status.textContent = 'The ad could not load. Check your connection and try again.';
+            }
+          }
+        } finally {
+          rewardAdInProgress = false;
+          if (buttonEl && buttonEl.isConnected) { 
+            buttonEl.disabled = false; 
+            buttonEl.style.opacity = '1'; 
+          }
+        }
+      }
+
+      const reviveBtn = document.getElementById('adReviveBtn');
+      if (reviveBtn && canRevive && reviveCallback) {
+        reviveBtn.addEventListener('click', async () => {
+          triggerHaptic('medium');
+          await showRewardedAd(async () => {
+            reviveCallback();
+          }, reviveBtn);
+        });
+      }
+
+      document.getElementById('adBonusBtn').addEventListener('click', async e => {
+        triggerHaptic('medium');
+        const button = e.currentTarget;
+        await showRewardedAd(async () => {
+          if (typeof finishSession === 'function') await finishSession(Math.max(0, Number(finalScore) || 0) + 20, Math.max(0, Number(finalScore) || 0));
+          else if (sessionId) await saveGameResult(Math.max(0, Number(finalScore) || 0) + 20, sessionId, finalScore);
+          closeGame();
+        }, button);
+      });
+
+      document.getElementById('skipGameBtn').addEventListener('click', async () => {
+        if (typeof finishSession === 'function') await finishSession(Math.max(0, Number(finalScore) || 0));
+        else if (sessionId) await saveGameResult(Math.max(0, Number(finalScore) || 0), sessionId);
+        closeGame();
+      });
+    }
+  </script>
+</body>
+</html>
